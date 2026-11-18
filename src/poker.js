@@ -51,7 +51,7 @@ export function mountPoker(container, onAction) {
       if(!row){row=document.createElement('li');row.className='poker-seat';row.dataset.userId=player.user_id;row.innerHTML='<strong></strong><span class="seat-status hint"></span><div class="cards"></div>';rows.set(player.user_id,row);el('poker-players').append(row);}
       row.classList.toggle('current-turn',active&&player.seat===latest.turn_seat);
       row.classList.toggle('folded',player.folded||player.departed);
-      const markers=[player.seat===latest.dealer?'Dealer':null,player.seat===latest.small_blind?'SB':null,player.seat===latest.big_blind?'BB':null,player.user_id===room.host_id?'Host':null].filter(Boolean);
+      const markers=[player.is_bot?'Bot':null,player.seat===latest.dealer?'Dealer':null,player.seat===latest.small_blind?'SB':null,player.seat===latest.big_blind?'BB':null,player.user_id===room.host_id?'Host':null].filter(Boolean);
       setText(row.querySelector('strong'),`${player.name}${player.user_id===viewer?' (you)':''}`);
       setText(row.querySelector('.seat-status'),`Seat ${player.seat}${markers.length?' · '+markers.join(' · '):''} · ${player.stack} chips${player.bet?' · Bet '+player.bet:''}${player.hand_rank?' · '+player.hand_rank:''}${player.departed?' · Left':player.folded?' · Folded':player.all_in?' · All-in':!player.in_hand?' · Sitting out':''}`);
       row.querySelector('.cards').hidden=player.user_id===viewer;

@@ -15,3 +15,7 @@ Room capacities and access are enforced by the backend. Hosting grants no privat
 See the hub’s [room contract](https://github.com/Kumori1313/game-hub/blob/main/docs/shared-room-contract.md), [release runbook](https://github.com/Kumori1313/game-hub/blob/main/docs/release-runbook.md), and roadmap. Dark/light themes, guest entry, sticky browsing navigation, and shared auth storage follow the existing sites. Keep shared client files aligned until a versioned package replaces the copies.
 
 See the [Hold’em contract and test coverage](https://github.com/Kumori1313/game-hub/blob/main/docs/poker-contract.md).
+
+## Bots
+
+Create a lobby, choose its capacity, and select **Add bot** for each bot seat. Remove bots in the waiting room if you want to make space for a human. Start with one human and bots or mix several humans and bots, up to the selected six-seat maximum. Bot seats are fixed once play starts. Bots use a basic server-side strategy with their own cards and the public board; no paid AI service is involved. The hub's `npm run test:bots` covers solo/mixed tables and bot rules.
