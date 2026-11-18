@@ -1,6 +1,6 @@
 # Poker
 
-Game Hub’s poker lobby preview. Guests can create public or code-only rooms for 2–6 players and share the hub identity. Dealing, betting, and playable hands arrive in milestone 8.2; this preview does not start a poker game.
+Play-money No-Limit Texas Hold’em for 2–6 players, with public or code-only rooms and shared Game Hub guest identities. Tables start with 1,000 chips per player, 10/20 blinds, and a 30-second turn clock. The host deals successive hands without recreating the room. Configurable settings follow in milestone 8.3.
 
 ## Development
 
@@ -10,6 +10,8 @@ Published path: https://kumori1313.github.io/poker/
 
 ## Shared contract
 
-Room capacities and access are enforced by the backend. Hosting grants no private bypass for other rooms. Codes are shown only to admitted members, not placed in launch URLs. The future Hold’em implementation must keep the deck and private cards server-side.
+Room capacities and access are enforced by the backend. Hosting grants no private bypass for other rooms. Codes are shown only to admitted members, not placed in launch URLs. The backend owns shuffling, private cards, legal actions, deadlines, and payouts. Opponents’ cards appear only at showdown if they have not folded. Late joins and rebuys are disabled. Leaving folds unless already all-in; host ownership transfers automatically.
 
 See the hub’s [room contract](https://github.com/Kumori1313/game-hub/blob/main/docs/shared-room-contract.md), [release runbook](https://github.com/Kumori1313/game-hub/blob/main/docs/release-runbook.md), and roadmap. Dark/light themes, guest entry, sticky browsing navigation, and shared auth storage follow the existing sites. Keep shared client files aligned until a versioned package replaces the copies.
+
+See the [Hold’em contract and test coverage](https://github.com/Kumori1313/game-hub/blob/main/docs/poker-contract.md).
