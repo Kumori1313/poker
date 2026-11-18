@@ -11,7 +11,7 @@ function cardNode(card) {
 }
 function setText(node,value) {if(node.textContent!==value) node.textContent=value;}
 export function mountPoker(container, onAction) {
-  container.innerHTML='<div class="table-heading"><h3 id="poker-title" tabindex="-1"></h3><span id="poker-rules" class="hint">No-Limit Hold’em · 10/20 blinds</span></div><p id="poker-status" role="status"></p><p id="poker-clock" class="hint"></p><div id="community-cards" class="cards" role="group" aria-label="Community cards"></div><p class="hint">Your hand</p><div id="poker-own-cards" class="cards" role="group" aria-label="Your private cards"></div><p id="poker-pot"></p><ul id="poker-players" class="poker-players" aria-label="Table seats"></ul><p id="poker-last-action" class="hint"></p><div id="poker-controls" class="lobby-actions"><button id="poker-fold" class="secondary" type="button">Fold</button><button id="poker-check-call" class="button" type="button">Check</button><button id="poker-all-in" class="secondary" type="button">All-in</button></div><form id="poker-raise-form"><label for="poker-amount">Total bet this round</label><div class="input-line"><input id="poker-amount" type="number" step="1" inputmode="numeric" /><button id="poker-raise" class="secondary" type="submit">Raise to</button></div></form><div id="poker-next-wrap" class="lobby-actions"><button id="poker-next" type="button" class="button" hidden>Deal next hand</button></div><p id="poker-result" role="status"></p>';
+  container.innerHTML='<div class="table-heading"><h3 id="poker-title" tabindex="-1"></h3><span id="poker-rules" class="hint">No-Limit Hold’em · 10/20 blinds</span></div><p id="poker-status" role="status"></p><p id="poker-clock" class="hint"></p><div id="community-cards" class="cards" role="group" aria-label="Community cards"></div><p class="hint">Your hand</p><div id="poker-own-cards" class="cards" role="group" aria-label="Your private cards"></div><p id="poker-pot"></p><ul id="poker-players" class="poker-players" aria-label="Table seats"></ul><p id="poker-last-action" class="hint"></p><div id="poker-controls" class="lobby-actions"><button id="poker-fold" class="secondary" type="button">Fold</button><button id="poker-check-call" class="button" type="button">Check</button><button id="poker-all-in" class="secondary" type="button">All-in</button></div><form id="poker-raise-form"><label for="poker-amount">Total bet this round</label><div class="input-line"><input id="poker-amount" type="number" step="1" inputmode="numeric" /><button id="poker-raise" class="secondary" type="submit">Raise to</button></div></form><div id="poker-next-wrap" class="lobby-actions"><button id="poker-rebuy" type="button" class="secondary" hidden>Rebuy</button><button id="poker-next" type="button" class="button" hidden>Deal next hand</button></div><p id="poker-result" role="status"></p>';
   const el=id=>container.querySelector(`#${id}`);
   for(const id of ['poker-controls','poker-raise-form','poker-next-wrap','poker-result']) container.insertBefore(el(id),el('poker-players'));
   let latest=null, viewer=null,clockOffset=0,clockKey=null;
@@ -19,6 +19,7 @@ export function mountPoker(container, onAction) {
   el('poker-fold').addEventListener('click',()=>onAction('fold'));
   el('poker-check-call').addEventListener('click',()=>onAction(latest?.actions.can_check?'check':'call'));
   el('poker-all-in').addEventListener('click',()=>onAction('all_in'));
+  el('poker-rebuy').addEventListener('click',()=>onAction('rebuy'));
   el('poker-next').addEventListener('click',()=>onAction('next'));
   el('poker-raise-form').addEventListener('submit',event=>{event.preventDefault();if(!el('poker-amount').reportValidity())return;const amount=Number(el('poker-amount').value);if(Number.isSafeInteger(amount))onAction('raise_to',amount);});
   function clock() {
@@ -31,6 +32,8 @@ export function mountPoker(container, onAction) {
     latest=room?.poker;viewer=userId;
     container.hidden=!latest;if(!latest)return;
     container.dataset.hand=latest.hand_id;container.dataset.revision=latest.revision;
+    const rules=latest.settings??{starting_chips:1000,small_blind:10,big_blind:20,turn_seconds:30,rebuy_limit:0};
+    setText(el('poker-rules'),`No-Limit Hold’em · ${rules.small_blind}/${rules.big_blind} blinds · ${rules.turn_seconds}s${rules.rebuy_limit?' · '+rules.rebuy_limit+(rules.rebuy_limit===1?' rebuy/player':' rebuys/player'):''}`);
     const own=latest.players.find(p=>p.user_id===viewer);
     const turn=latest.players.find(p=>p.seat===latest.turn_seat);
     const active=latest.street!=='complete';
@@ -38,7 +41,7 @@ export function mountPoker(container, onAction) {
     const key=`${latest.hand_id}:${latest.revision}`;
     if(clockKey!==key){clockKey=key;clockOffset=Date.parse(latest.server_time)-Date.now();}
     setText(el('poker-title'),`Hand ${latest.hand_no} · ${latest.street==='complete'?'Complete':latest.street[0].toUpperCase()+latest.street.slice(1)}`);
-    setText(el('poker-status'),!online?'Reconnecting…':busy?'Submitting…':active?(turn?.user_id===viewer?'Your turn.':`Waiting for ${turn?.name ?? 'the table'}.`):room.status==='finished'?'Table finished.':room.host_id===viewer?'Ready for the next hand.':'Waiting for the host to deal.');
+    setText(el('poker-status'),!online?'Reconnecting…':busy?'Submitting…':active?(turn?.user_id===viewer?'Your turn.':`Waiting for ${turn?.name ?? 'the table'}.`):room.status==='finished'?'Table finished.':latest.actions.can_rebuy?'Out of chips. Rebuy to continue.':latest.players.filter(p=>!p.departed&&p.stack>0).length<2?'Waiting for a rebuy.':room.host_id===viewer?'Ready for the next hand.':'Waiting for the host to deal.');
     clock();
     const ownKey=(own?.cards ?? []).join(',');
     if(el('poker-own-cards').dataset.cards!==ownKey){el('poker-own-cards').replaceChildren(...(own?.cards ?? []).map(cardNode));el('poker-own-cards').dataset.cards=ownKey;}
@@ -53,7 +56,7 @@ export function mountPoker(container, onAction) {
       row.classList.toggle('folded',player.folded||player.departed);
       const markers=[player.is_bot?'Bot':null,player.seat===latest.dealer?'Dealer':null,player.seat===latest.small_blind?'SB':null,player.seat===latest.big_blind?'BB':null,player.user_id===room.host_id?'Host':null].filter(Boolean);
       setText(row.querySelector('strong'),`${player.name}${player.user_id===viewer?' (you)':''}`);
-      setText(row.querySelector('.seat-status'),`Seat ${player.seat}${markers.length?' · '+markers.join(' · '):''} · ${player.stack} chips${player.bet?' · Bet '+player.bet:''}${player.hand_rank?' · '+player.hand_rank:''}${player.departed?' · Left':player.folded?' · Folded':player.all_in?' · All-in':!player.in_hand?' · Sitting out':''}`);
+      setText(row.querySelector('.seat-status'),`Seat ${player.seat}${markers.length?' · '+markers.join(' · '):''} · ${player.stack} chips${rules.rebuy_limit?' · Rebuys '+player.rebuy_count+'/'+rules.rebuy_limit:''}${player.bet?' · Bet '+player.bet:''}${player.hand_rank?' · '+player.hand_rank:''}${player.departed?' · Left':player.folded?' · Folded':player.all_in?' · All-in':!player.in_hand?' · Sitting out':''}`);
       row.querySelector('.cards').hidden=player.user_id===viewer;
       const visible=player.user_id===viewer?[]:player.cards ?? (player.in_hand?[null,null]:[]);
       const cardKey=visible.map(x=>x===null?'hidden':x).join(',');
@@ -69,6 +72,9 @@ export function mountPoker(container, onAction) {
     el('poker-amount').min=String(latest.min_raise_to);el('poker-amount').max=String(latest.actions.max_raise_to ?? 0);
     if(document.activeElement!==el('poker-amount') && (Number(el('poker-amount').value)<latest.min_raise_to || Number(el('poker-amount').value)>latest.actions.max_raise_to))el('poker-amount').value=latest.min_raise_to;
     setText(el('poker-raise'),latest.current_bet?'Raise to':'Bet');
+    el('poker-rebuy').hidden=active||!latest.actions.can_rebuy||room.status!=='playing';
+    el('poker-rebuy').disabled=busy||!online;
+    setText(el('poker-rebuy'),`Rebuy ${rules.starting_chips.toLocaleString()}`);
     el('poker-next').hidden=active||room.host_id!==viewer||room.status!=='playing';
     el('poker-next').disabled=busy||!online||latest.players.filter(p=>!p.departed&&p.stack>0).length<2;
     const awards=latest.players.filter(p=>p.payout>0).map(p=>{const returned=latest.pots.filter(pot=>pot.kind==='return'&&pot.winners.includes(p.seat)).reduce((sum,pot)=>sum+pot.amount,0);return `${p.name}: ${p.payout-returned?`${p.payout-returned} won`:''}${returned?`${p.payout-returned?', ':''}${returned} returned`:''}`;});
